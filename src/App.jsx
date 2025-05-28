@@ -2,7 +2,7 @@ import { useState } from "react";
 import axios from "axios";
 import SearchBar from "./components/SearchBar";
 import WeatherCard from "./components/WeatherCard";
-import video from "./video.mp4";
+import video from "./baadall.mp4";
 
 function App() {
   const [weather, setWeather] = useState(null);
@@ -54,6 +54,5 @@ function App() {
     </div>
   );
 }
-``;
 
 export default App;
