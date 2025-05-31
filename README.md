@@ -1,7 +1,7 @@
-# React + Vite
-Hey Everyone!
+
 # 🌦️ Weather App
 
+Hey Everyone!
 A responsive and user-friendly Weather Application built using **React.js**. This app allows users to search for weather information of any city and view detailed forecasts in an intuitive interface.
 
 ## 🚀 Features
