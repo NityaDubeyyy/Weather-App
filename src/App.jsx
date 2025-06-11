@@ -12,6 +12,7 @@ function App() {
   const [error, setError] = useState("");
   const [unit, setUnit] = useState("metric"); // 'metric' for Celsius, 'imperial' for Fahrenheit
   const [savedLocations, setSavedLocations] = useState([]);
+  const [locationPermission, setLocationPermission] = useState(null);
 
   const API_KEY = import.meta.env.VITE_API_KEY;
   const API_URL = `https://api.openweathermap.org/data/2.5`;
@@ -28,6 +29,85 @@ function App() {
   useEffect(() => {
     localStorage.setItem("savedLocations", JSON.stringify(savedLocations));
   }, [savedLocations]);
+
+  // Request location access immediately on component mount
+  useEffect(() => {
+    const requestLocation = () => {
+      console.log("Requesting location...");
+      
+      if (!navigator.geolocation) {
+        console.log("Geolocation not supported");
+        setError("Geolocation is not supported by your browser");
+        return;
+      }
+
+      setLoading(true);
+      setError("");
+
+      const options = {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      };
+
+      console.log("Calling getCurrentPosition with options:", options);
+      
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          console.log("Location obtained:", position);
+          try {
+            const { latitude, longitude } = position.coords;
+            // Fetch weather by coordinates
+            const weatherUrl = `${API_URL}/weather?lat=${latitude}&lon=${longitude}&units=${unit}&appid=${API_KEY}`;
+            const weatherResponse = await axios.get(weatherUrl);
+            setWeather(weatherResponse.data);
+
+            // Fetch forecast by coordinates
+            const forecastUrl = `${API_URL}/forecast?lat=${latitude}&lon=${longitude}&units=${unit}&cnt=40&appid=${API_KEY}`;
+            const forecastResponse = await axios.get(forecastUrl);
+            const dailyForecasts = processForecastData(forecastResponse.data.list);
+            setForecast(dailyForecasts);
+            setLocationPermission("granted");
+          } catch (err) {
+            console.error("Error fetching weather:", err);
+            setError("Failed to fetch weather data for your location");
+            setWeather(null);
+            setForecast(null);
+          } finally {
+            setLoading(false);
+          }
+        },
+        (error) => {
+          console.error("Geolocation error:", error);
+          setLoading(false);
+          setLocationPermission("denied");
+          
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              setError("Location access was denied. Please allow location access in your browser settings and refresh the page.");
+              break;
+            case error.POSITION_UNAVAILABLE:
+              setError("Location information is unavailable. Please check your device's location services and refresh the page.");
+              break;
+            case error.TIMEOUT:
+              setError("Location request timed out. Please try again.");
+              break;
+            default:
+              setError("An unknown error occurred while getting your location.");
+          }
+        },
+        options
+      );
+    };
+
+    // Request location immediately
+    requestLocation();
+
+    // Try requesting again after a short delay
+    const timeoutId = setTimeout(requestLocation, 2000);
+
+    return () => clearTimeout(timeoutId);
+  }, [unit]); // Re-run when unit changes to update temperature units
 
   const toggleUnit = () => {
     setUnit(unit === "metric" ? "imperial" : "metric");
